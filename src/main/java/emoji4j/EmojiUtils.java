@@ -1,58 +1,61 @@
 package emoji4j;
 
-import org.hamcrest.Matchers;
-
-import static ch.lambdaj.Lambda.having;
-import static ch.lambdaj.Lambda.on;
-import static ch.lambdaj.Lambda.selectFirst;
-
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
  * Utils to deal with emojis
- * 
+ *
  * @author Krishna Chaitanya Thota
  *
  */
 public class EmojiUtils extends AbstractEmoji {
 
-	
+
 	/**
 	 * Get emoji by unicode, short code, decimal html entity or hexadecimal html
 	 * entity
-	 * 
+	 *
 	 * @param code unicode, short code, decimal html entity or hexadecimal html
 	 * @return Emoji
 	 */
 	public static Emoji getEmoji(String code) {
 
 		Matcher m = shortCodePattern.matcher(code);
-		
+
 
 		// test for shortcode with colons
 		if (m.find()) {
 			code = m.group(1);
 		}
-		
-		Emoji emoji = selectFirst(
-				EmojiManager.data(),
-				having(on(Emoji.class).getEmoji(), Matchers.equalTo(code)).or(having(on(Emoji.class).getEmoji(), Matchers.equalTo(code)))
-						.or(having(on(Emoji.class).getHexHtml(), Matchers.equalToIgnoringCase(code)))
-						.or(having(on(Emoji.class).getDecimalHtml(), Matchers.equalToIgnoringCase(code)))
-						.or(having(on(Emoji.class).getDecimalSurrogateHtml(), Matchers.equalToIgnoringCase(code)))
-						.or(having(on(Emoji.class).getHexHtmlShort(), Matchers.equalToIgnoringCase(code)))
-						.or(having(on(Emoji.class).getDecimalHtmlShort(), Matchers.equalToIgnoringCase(code)))
-						.or(having(on(Emoji.class).getAliases(), Matchers.hasItem(code)))
-						.or(having(on(Emoji.class).getEmoticons(), Matchers.hasItem(code))));
+
+		Emoji emoji = null;
+		for (Emoji e : EmojiManager.data()) {
+			if (nullOrEqualsIgnoreCase(e.getHexHtml(), code) || nullOrEqualsIgnoreCase(e.getDecimalHtml(), code) || nullOrEqualsIgnoreCase(e.getDecimalSurrogateHtml(), code) ||
+					nullOrEqualsIgnoreCase(e.getHexHtmlShort(), code) || nullOrEqualsIgnoreCase(e.getDecimalHtmlShort(), code) || listContainsString(e.getAliases(), code) || listContainsString(e.getEmoticons(), code)) {
+				emoji = e;
+			}
+		}
 
 		return emoji;
+	}
+
+	public static boolean nullOrEqualsIgnoreCase(String a, String b) {
+		if (a == b) return true;
+		if ((a == null) || (b == null)) return false;
+		return a.equalsIgnoreCase(b);
+	}
+
+	public static boolean listContainsString(List<String> list, String item) {
+		if (list == null || item == null) return false;
+		return list.contains(item);
 	}
 
 	/**
 	 * Checks if an Emoji exists for the unicode, short code, decimal or
 	 * hexadecimal html entity
-	 * 
+	 *
 	 * @param code unicode, short code, decimal html entity or hexadecimal html
 	 * @return is emoji
 	 */
@@ -62,23 +65,28 @@ public class EmojiUtils extends AbstractEmoji {
 
 	/**
 	 * Converts emoji short codes or html entities in string with emojis
-	 * 
+	 *
 	 * @param text String to emojify
 	 * @return emojified String
 	 */
 	public static String emojify(String text) {
-		return emojify(text, 0);
-		
+		return emojify(text, 0, false);
 	}
-	
-	private static String emojify(String text, int startIndex) {
+
+	public static String emojify(String text, boolean ignoreEmoticon) {
+		return emojify(text, 0, ignoreEmoticon);
+	}
+
+	private static String emojify(String text, int startIndex, boolean ignoreEmoticon) {
 		text = processStringWithRegex(text, shortCodeOrHtmlEntityPattern, startIndex, true);
 		
 		// emotions should be processed in second go.
 		// this will avoid conflicts with shortcodes. For Example: :p:p should
 		// not
 		// be processed as shortcode, but as emoticon
-		text = processStringWithRegex(text, EmojiManager.getEmoticonRegexPattern(), startIndex, true);
+		if (!ignoreEmoticon) {
+			text = processStringWithRegex(text, EmojiManager.getEmoticonRegexPattern(), startIndex, true);
+		}
 
 		return text;
 	}
@@ -146,7 +154,7 @@ public class EmojiUtils extends AbstractEmoji {
 		//do not recurse emojify when coming here through htmlSurrogateEntityPattern2..so we get a chance to check if the tail
 		//is part of a surrogate entity
 		if(recurseEmojify && resetIndex > 0) {
-			return emojify(sb.toString(), resetIndex);
+			return emojify(sb.toString(), resetIndex, false);
 		}
 		return sb.toString();
 	}
@@ -182,6 +190,11 @@ public class EmojiUtils extends AbstractEmoji {
 	 */
 	public static String htmlify(String text) {
 		String emojifiedStr = emojify(text);
+		return htmlifyHelper(emojifiedStr, false, false);
+	}
+
+	public static String htmlifyWithIgnoreEmoticon(String text) {
+		String emojifiedStr = emojify(text, true);
 		return htmlifyHelper(emojifiedStr, false, false);
 	}
 

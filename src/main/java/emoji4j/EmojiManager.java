@@ -15,7 +15,7 @@ import com.fasterxml.jackson.databind.type.TypeFactory;
  */
 public class EmojiManager {
 	private static Pattern emoticonRegexPattern;
-	
+
 	private static List<Emoji> emojiData;
 
 	static {
@@ -37,7 +37,7 @@ public class EmojiManager {
 	public static List<Emoji> data() {
 		return emojiData;
 	}
-	
+
 	/**
 	 * Returns the Regex which can match all emoticons in a string
 	 * @return regex pattern for emoticons
@@ -51,22 +51,22 @@ public class EmojiManager {
 	 * Processes the Emoji data to emoticon regex
 	 */
 	private static void processEmoticonsToRegex() {
-		
+
 		List<String> emoticons=new ArrayList<String>();
-		
+
 		for(Emoji e: emojiData) {
 			if(e.getEmoticons()!=null) {
 				emoticons.addAll(e.getEmoticons());
 			}
 		}
-		
+
 		//List of emotions should be pre-processed to handle instances of subtrings like :-) :-
 		//Without this pre-processing, emoticons in a string won't be processed properly
 		for(int i=0;i<emoticons.size();i++) {
 			for(int j=i+1;j<emoticons.size();j++) {
 				String o1=emoticons.get(i);
 				String o2=emoticons.get(j);
-				
+
 				if(o2.contains(o1)) {
 					String temp = o2;
 					emoticons.remove(j);
@@ -74,7 +74,7 @@ public class EmojiManager {
 				}
 			}
 		}
-		
+
 		emoticonRegexPattern = getAsciiEmojiRegex(emoticons);
 	}
 
